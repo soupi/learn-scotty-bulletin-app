@@ -20,6 +20,10 @@ library
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , scotty
+                     , text
+                     , containers
+                     , time
+                     , http-types
 
 executable bulletin-app
   hs-source-dirs:      app
