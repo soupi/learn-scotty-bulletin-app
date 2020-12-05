@@ -74,11 +74,45 @@ myApp mystateVar = do
 
   -- A page for creating a new post
   S.get "/new" $
-    error "not yet implemented"
+    S.html $
+      H.renderText $
+        template
+          ("Bulletin board - add new post")
+          newPostHtml
 
   -- A request to submit a new page
-  S.post "/new" $
-    error "not yet implemented"
+  S.post "/new" $ do
+    title <- S.param "title"
+    author <- S.param "author"
+    content <- S.param "content"
+    time <- liftIO C.getCurrentTime
+    pid <- liftIO $ newPost
+      ( Post
+        { pTime = time
+        , pAuthor = author
+        , pTitle = title
+        , pContent = content
+        }
+      )
+      mystateVar
+    S.redirect ("/post/" <> TL.pack (show pid))
+
+  -- A request to submit a new page
+  S.post "/new" $ do
+    title <- S.param "title"
+    author <- S.param "author"
+    content <- S.param "content"
+    time <- liftIO C.getCurrentTime
+    pid <- liftIO $ newPost
+      ( Post
+        { pTime = time
+        , pAuthor = author
+        , pTitle = title
+        , pContent = content
+        }
+      )
+      mystateVar
+    S.redirect ("/post/" <> TL.pack (show pid))
 
   -- A request to delete a specific post
   S.post "/post/:id/delete" $ do
@@ -107,7 +141,7 @@ myApp mystateVar = do
 
 
 
-newPost :: Post -> STM.TVar MyState -> IO ()
+newPost :: Post -> STM.TVar MyState -> IO Integer
 newPost post mystateVar = do
   STM.atomically $ do
     mystate <- STM.readTVar mystateVar
@@ -118,6 +152,7 @@ newPost post mystateVar = do
         , msPosts = M.insert (msId mystate) post (msPosts mystate)
         }
       )
+    pure (msId mystate)
 
 -----------
 -- Utils --
@@ -208,3 +243,18 @@ postHtml pid post = do
       ( do
         H.input_ [H.type_ "submit", H.value_ "Delete", H.class_ "deletebtn"]
       )
+
+newPostHtml :: Html
+newPostHtml = do
+  H.form_
+    [ H.method_ "post"
+    , H.action_ "/new"
+    , H.class_ "new-post"
+    ]
+    ( do
+      H.p_ $ H.input_ [H.type_ "text", H.name_ "title", H.placeholder_ "Title..."]
+      H.p_ $ H.input_ [H.type_ "text", H.name_ "author", H.placeholder_ "Author..."]
+      H.p_ $ H.textarea_ [H.name_ "content", H.placeholder_ "Content..."] ""
+      H.p_ $ H.input_ [H.type_ "submit", H.value_ "Submit", H.class_ "submit-button"]
+    )
+
