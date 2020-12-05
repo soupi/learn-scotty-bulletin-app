@@ -24,6 +24,7 @@ library
                      , containers
                      , time
                      , http-types
+                     , stm
 
 executable bulletin-app
   hs-source-dirs:      app
