@@ -25,6 +25,7 @@ library
                      , time
                      , http-types
                      , stm
+                     , lucid
 
 executable bulletin-app
   hs-source-dirs:      app

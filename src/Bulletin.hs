@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import qualified Network.HTTP.Types as HTTP
 import qualified Control.Concurrent.STM as STM
 import Control.Monad.IO.Class (liftIO)
+import qualified Lucid as H
 
 -----------
 -- Types --
@@ -45,7 +46,11 @@ myApp mystateVar = do
   -- Our main page, which will display all of the bulletins
   S.get "/" $ do
     posts <- liftIO $ msPosts <$> STM.readTVarIO mystateVar
-    S.text $ TL.unlines $ map ppPost $ M.elems posts
+    S.html $
+      H.renderText $
+        template
+          "Bulletin board - posts"
+          (postsHtml posts)
 
   -- A page for a specific post
   S.get "/post/:id" $ do
@@ -53,11 +58,19 @@ myApp mystateVar = do
     posts <- liftIO $ msPosts <$> STM.readTVarIO mystateVar
     case M.lookup pid posts of
       Just post ->
-        S.text $ ppPost post
+        S.html $
+          H.renderText $
+            template
+              ("Bulletin board - post " <> TL.pack (show pid))
+              (postHtml pid post)
 
       Nothing -> do
         S.status HTTP.notFound404
-        S.text "404 Not Found."
+        S.html $
+          H.renderText $
+            template
+              ("Bulletin board - post " <> TL.pack (show pid) <> " not found.")
+              "404 Post not found."
 
   -- A page for creating a new post
   S.get "/new" $
@@ -144,3 +157,54 @@ ppPost post =
       , pContent post
       , seperator
       ]
+
+----------
+-- HTML --
+----------
+
+type Html = H.Html ()
+
+template :: TL.Text -> Html -> Html
+template title content =
+  H.doctypehtml_ $ do
+    H.head_ $ do
+      H.meta_ [ H.charset_ "utf-8" ]
+      H.title_ (H.toHtml title)
+      H.link_ [ H.rel_ "stylesheet", H.type_ "text/css", H.href_ "/style.css"  ]
+    H.body_ $ do
+      H.div_ [ H.class_ "main" ] $ do
+        H.h1_ [ H.class_ "logo" ] $
+          H.a_ [H.href_ "/"] "Bulletin Board"
+        content
+
+postsHtml :: Posts -> Html
+postsHtml posts = do
+  H.p_ [ H.class_ "new-button" ] $
+    H.a_ [H.href_ "/new"] "New Post"
+  mapM_ (uncurry postHtml) $ reverse $ M.toList posts
+
+postHtml :: Integer -> Post -> Html
+postHtml pid post = do
+  H.div_ [ H.class_ "post" ] $ do
+    H.div_ [ H.class_ "post-header" ] $ do
+      H.h2_ [ H.class_ "post-title" ] $
+        H.a_
+          [H.href_ (TL.toStrict $ "/post/" <> TL.pack (show pid))]
+          (H.toHtml $ pTitle post)
+
+      H.span_ $ do
+        H.p_ [ H.class_ "post-desc" ] $ H.toHtml (TL.pack (show (pTime post)))
+        H.p_ [ H.class_ "post-desc" ] $ H.toHtml (TL.pack (show (pAuthor post)))
+
+    H.div_ [H.class_ "post-content"] $ do
+      H.toHtml (pContent post)
+
+    H.form_
+      [ H.method_ "post"
+      , H.action_ (TL.toStrict $ "/post/" <> TL.pack (show pid) <> "/delete")
+      , H.onsubmit_ "return confirm('Are you sure?')"
+      , H.class_ "delete-post"
+      ]
+      ( do
+        H.input_ [H.type_ "submit", H.value_ "Delete", H.class_ "deletebtn"]
+      )
