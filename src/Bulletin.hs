@@ -228,8 +228,8 @@ postHtml pid post = do
           (H.toHtml $ pTitle post)
 
       H.span_ $ do
-        H.p_ [ H.class_ "post-desc" ] $ H.toHtml (TL.pack (show (pTime post)))
-        H.p_ [ H.class_ "post-desc" ] $ H.toHtml (TL.pack (show (pAuthor post)))
+        H.p_ [ H.class_ "post-time" ] $ H.toHtml (TL.pack (show (pTime post)))
+        H.p_ [ H.class_ "post-author" ] $ H.toHtml (pAuthor post)
 
     H.div_ [H.class_ "post-content"] $ do
       H.toHtml (pContent post)
