@@ -139,7 +139,10 @@ myApp mystateVar = do
         S.status HTTP.notFound404
         S.text "404 Not Found."
 
-
+  -- css styling
+  S.get "/style.css" $ do
+    S.setHeader "Content-Type" "text/css; charset=utf-8"
+    S.raw ".main { width: 900px; margin: auto; }"
 
 newPost :: Post -> STM.TVar MyState -> IO Integer
 newPost post mystateVar = do
