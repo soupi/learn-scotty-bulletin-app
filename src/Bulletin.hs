@@ -97,23 +97,6 @@ myApp mystateVar = do
       mystateVar
     S.redirect ("/post/" <> TL.pack (show pid))
 
-  -- A request to submit a new page
-  S.post "/new" $ do
-    title <- S.param "title"
-    author <- S.param "author"
-    content <- S.param "content"
-    time <- liftIO C.getCurrentTime
-    pid <- liftIO $ newPost
-      ( Post
-        { pTime = time
-        , pAuthor = author
-        , pTitle = title
-        , pContent = content
-        }
-      )
-      mystateVar
-    S.redirect ("/post/" <> TL.pack (show pid))
-
   -- A request to delete a specific post
   S.post "/post/:id/delete" $ do
     pid <- S.param "id"
