@@ -4,7 +4,7 @@ resolver:
 # uncomment for static executables
 # docker:
 #   enable: true
-#   image: utdemir/ghc-musl:v16-ghc884
+#   image: utdemir/ghc-musl:v22-ghc8107
 
 packages:
 - .
