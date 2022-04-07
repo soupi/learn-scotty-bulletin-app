@@ -3,11 +3,21 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    name: twain
+    version: 2.0.1.0
+    git: https://github.com/soupi/twain.git
+    pantry-tree:
+      size: 708
+      sha256: 71804a6dc1b9333fa1dc10fdf5673b28559c5adbbc57f569b8e83b606ebf90cf
+    commit: 66200defb92a09560a9ae6ea618ee17278280bf4
+  original:
+    git: https://github.com/soupi/twain.git
+    commit: 66200defb92a09560a9ae6ea618ee17278280bf4
 snapshots:
 - completed:
-    size: 586296
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
-    sha256: 63539429076b7ebbab6daa7656cfb079393bf644971156dc349d7c0453694ac2
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
+    size: 545843
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2022/4/6.yaml
+    sha256: e59512928378e2411fea0269b3a658e31c8b24c9824dc213361dcce50a2b3f29
+  original: nightly-2022-04-06

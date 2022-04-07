@@ -2,7 +2,9 @@
 
 module Bulletin where
 
-import qualified Web.Scotty as S
+import qualified Network.Wai.Handler.Warp as Warp (run)
+import qualified Web.Twain as Twain
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Time.Clock as C
 import qualified Data.Map as M
@@ -39,52 +41,55 @@ main :: IO ()
 main = do
   posts <- makeDummyPosts
   mystateVar <- STM.newTVarIO MyState{msId = 1, msPosts = posts}
-  S.scotty 3000 (myApp mystateVar)
+  putStrLn "Starting server at port 3000"
+  Warp.run 3000 (myApp mystateVar)
 
-myApp :: STM.TVar MyState -> S.ScottyM ()
-myApp mystateVar = do
+myApp :: STM.TVar MyState -> Twain.Application
+myApp mystateVar = foldr ($)
+  (Twain.notFound $ Twain.send $ Twain.text "404 Not found.")
+
   -- Our main page, which will display all of the bulletins
-  S.get "/" $ do
+  [ Twain.get "/" $ do
     posts <- liftIO $ msPosts <$> STM.readTVarIO mystateVar
-    S.html $
-      H.renderText $
+    Twain.send $
+      Twain.html $ H.renderBS $
         template
           "Bulletin board - posts"
           (postsHtml posts)
 
   -- A page for a specific post
-  S.get "/post/:id" $ do
-    pid <- S.param "id"
+  , Twain.get "/post/:id" $ do
+    pid <- Twain.param "id"
     posts <- liftIO $ msPosts <$> STM.readTVarIO mystateVar
     case M.lookup pid posts of
       Just post ->
-        S.html $
-          H.renderText $
+        Twain.send $
+          Twain.html $ H.renderBS $
             template
               ("Bulletin board - post " <> TL.pack (show pid))
               (postHtml pid post)
 
       Nothing -> do
-        S.status HTTP.notFound404
-        S.html $
-          H.renderText $
-            template
-              ("Bulletin board - post " <> TL.pack (show pid) <> " not found.")
-              "404 Post not found."
+        Twain.send $
+          Twain.raw HTTP.status404 [("Content-Type", "text/html; charset=utf-8")] $
+            H.renderBS $
+              template
+                ("Bulletin board - post " <> TL.pack (show pid) <> " not found.")
+                "404 Post not found."
 
   -- A page for creating a new post
-  S.get "/new" $
-    S.html $
-      H.renderText $
+  , Twain.get "/new" $
+    Twain.send $
+      Twain.html $ H.renderBS $
         template
           ("Bulletin board - add new post")
           newPostHtml
 
   -- A request to submit a new page
-  S.post "/new" $ do
-    title <- S.param "title"
-    author <- S.param "author"
-    content <- S.param "content"
+  , Twain.post "/new" $ do
+    title <- Twain.param "title"
+    author <- Twain.param "author"
+    content <- Twain.param "content"
     time <- liftIO C.getCurrentTime
     pid <- liftIO $ newPost
       ( Post
@@ -95,11 +100,11 @@ myApp mystateVar = do
         }
       )
       mystateVar
-    S.redirect ("/post/" <> TL.pack (show pid))
+    Twain.send $ Twain.redirect302 ("/post/" <> T.pack (show pid))
 
   -- A request to delete a specific post
-  S.post "/post/:id/delete" $ do
-    pid <- S.param "id"
+  , Twain.post "/post/:id/delete" $ do
+    pid <- Twain.param "id"
     exists <- liftIO $ STM.atomically $ do
       mystate <- STM.readTVar mystateVar
       case M.lookup pid (msPosts mystate) of
@@ -116,16 +121,19 @@ myApp mystateVar = do
           pure False
     if exists
       then
-        S.redirect "/"
+        Twain.send $ Twain.redirect302 "/"
 
       else do
-        S.status HTTP.notFound404
-        S.text "404 Not Found."
+        Twain.send $
+          Twain.raw HTTP.status404 [("Content-Type", "text/html; charset=utf-8")] $
+            "404 Not Found."
 
   -- css styling
-  S.get "/style.css" $ do
-    S.setHeader "Content-Type" "text/css; charset=utf-8"
-    S.raw ".main { width: 900px; margin: auto; }"
+  , Twain.get "/style.css" $
+    Twain.send $
+      Twain.css ".main { width: 900px; margin: auto; }"
+  ]
+
 
 newPost :: Post -> STM.TVar MyState -> IO Integer
 newPost post mystateVar = do
@@ -243,4 +251,3 @@ newPostHtml = do
       H.p_ $ H.textarea_ [H.name_ "content", H.placeholder_ "Content..."] ""
       H.p_ $ H.input_ [H.type_ "submit", H.value_ "Submit", H.class_ "submit-button"]
     )
-
